@@ -1,21 +1,26 @@
 import requests
 import re
+import time
 
 
-def chapter_string(repsonse_html):  # 从html中解析出小说文字
-    result = re.findall('&nbsp;&nbsp;&nbsp;&nbsp;(.*?)<br />', repsonse_html, re.S)  # 识别
+def chapter_string(response_html):  # 从html中解析出小说文字
+    result = re.findall('&nbsp;&nbsp;&nbsp;&nbsp;(.*?)<br />', response_html, re.S)  # 识别
     chapter_string = "\n".join(result)  # 拼接
-    print(chapter_string)
     return chapter_string
 
 
-def next_chapter_url(repsonse_html):  # 获取下一章的url
-    result = re.findall('章节目录</a> <a href="(.*?)">下一章</a>', repsonse_html, re.S)
+def next_chapter_url(response_html):  # 获取下一章的url
+    result = re.findall('章节目录</a> <a href="(.*?)">下一章</a>', response_html, re.S)
     return result[0]
 
 
-def front_chapter_url(repsonse_html):  # 获取上一章的url
-    result = re.findall('<a href="(.*?)">上一章</a>', repsonse_html)
+def front_chapter_url(response_html):  # 获取上一章的url
+    result = re.findall('<a href="(.*?)">上一章</a>', response_html)
+    return result[0]
+
+
+def get_title(response_html):  # 获取上一章的url
+    result = re.findall('<h1>(.*?)</h1>', response_html)
     return result[0]
 
 
@@ -39,17 +44,29 @@ def request_url(url):
     response_html = response.content.decode('gbk')  # 将网页的gbk编码转换为unicode
     return response_html
 
+
+def write_chapter(novel, response_html):  # 负责将html代码中读取的一个章节写入文件
+    novel.write(get_title(response_html) + "\n")
+    novel.write(chapter_string(response_html))
+    novel.write("\n\n\n")
+
+
 # 逻辑部分
-start_url = "https://www.52bqg.com/book_361/246328.html"
+start_url = input("请输入小说第一章节的网址：")
+print("开始爬取")
+time_begin = time.time()
 novel = open('爬取小说.txt', 'w', encoding='utf-8')  # 创建txt文件保存小说
 response_html = request_url(start_url)
-novel.write(chapter_string(response_html))
+write_chapter(novel, response_html)
 next_url = next_chapter_url(response_html)
 catalogue_url = front_chapter_url(response_html)  # 第一章的上一章按钮返回的目录页url
 
 while next_url != catalogue_url:  # 最后一章的下一章按钮返回的是目录页url，所以某一章返回的若不是目录页url，则不是最后一章，则继续重复翻页读取章节操作
     response_html = request_url(next_url)
-    novel.write(chapter_string(response_html))  # 章节写入txt文件
+    write_chapter(novel, response_html)
     next_url = next_chapter_url(response_html)
 
 novel.close()
+time_end = time.time()
+time = time_end - time_begin
+print("正常结束,耗时:", time)
