@@ -6,16 +6,17 @@ def chapter_string(repsonse_html):  # 从html中解析出小说文字
     result = re.findall('&nbsp;&nbsp;&nbsp;&nbsp;(.*?)<br />', repsonse_html, re.S)  # 识别
     chapter_string = "\n".join(result)  # 拼接
     print(chapter_string)
+    return chapter_string
 
 
 def next_chapter_url(repsonse_html):  # 获取下一章的url
     result = re.findall('章节目录</a> <a href="(.*?)">下一章</a>', repsonse_html, re.S)
-    print(result[0])
+    return result[0]
 
 
 def front_chapter_url(repsonse_html):  # 获取上一章的url
     result = re.findall('<a href="(.*?)">上一章</a>', repsonse_html)
-    print(result[0])
+    return result[0]
 
 
 def request_url(url):
@@ -38,8 +39,17 @@ def request_url(url):
     response_html = response.content.decode('gbk')  # 将网页的gbk编码转换为unicode
     return response_html
 
+# 逻辑部分
+start_url = "https://www.52bqg.com/book_361/246328.html"
+novel = open('爬取小说.txt', 'w', encoding='utf-8')  # 创建txt文件保存小说
+response_html = request_url(start_url)
+novel.write(chapter_string(response_html))
+next_url = next_chapter_url(response_html)
+catalogue_url = front_chapter_url(response_html)  # 第一章的上一章按钮返回的目录页url
 
-response_html = request_url("https://www.52bqg.com/book_361/246328.html")
-chapter_string(response_html)
-next_chapter_url(response_html)
-front_chapter_url(response_html)
+while next_url != catalogue_url:  # 最后一章的下一章按钮返回的是目录页url，所以某一章返回的若不是目录页url，则不是最后一章，则继续重复翻页读取章节操作
+    response_html = request_url(next_url)
+    novel.write(chapter_string(response_html))  # 章节写入txt文件
+    next_url = next_chapter_url(response_html)
+
+novel.close()
