@@ -40,13 +40,13 @@ def request_url(url):
     return response_html
 
 # 逻辑部分
-start_url = "https://www.52bqg.com/book_361/246328.html"
+start_url = "https://www.52bqg.com/book_361/13827238.html"
 novel = open('爬取小说.txt', 'w', encoding='utf-8')  # 创建txt文件保存小说
 response_html = request_url(start_url)
 novel.write(chapter_string(response_html))
 next_url = next_chapter_url(response_html)
-catalogue_url = front_chapter_url(response_html)  # 第一章的上一章按钮返回的目录页url
-
+# catalogue_url = front_chapter_url(response_html)  # 第一章的上一章按钮返回的目录页url
+catalogue_url = "https://www.52bqg.com/book_361/"
 while next_url != catalogue_url:  # 最后一章的下一章按钮返回的是目录页url，所以某一章返回的若不是目录页url，则不是最后一章，则继续重复翻页读取章节操作
     response_html = request_url(next_url)
     novel.write(chapter_string(response_html))  # 章节写入txt文件
