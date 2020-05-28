@@ -1,7 +1,14 @@
 import requests
+import re
+
+
+def chapter_string(repsonse_html):  # 从html中解析出小说文字
+    result = re.findall('&nbsp;&nbsp;&nbsp;&nbsp;(.*?)<br />', repsonse_html, re.S)  # 识别
+    chapter_string = "\n".join(result)  # 拼接
+    print(chapter_string)
+
 
 url = "https://www.52bqg.com/book_361/246328.html"
-
 payload = {}
 headers = {
     'Connection': 'keep-alive',
@@ -20,4 +27,5 @@ headers = {
 
 response = requests.request("GET", url, headers=headers, data=payload)
 
-print(response.content.decode('gbk'))  # 将网页的gbk编码转换为unicode
+response_html = response.content.decode('gbk')  # 将网页的gbk编码转换为unicode
+chapter_string(response_html)
