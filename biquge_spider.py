@@ -8,6 +8,16 @@ def chapter_string(repsonse_html):  # 从html中解析出小说文字
     print(chapter_string)
 
 
+def next_chapter_url(repsonse_html):  # 获取下一章的url
+    result = re.findall('章节目录</a> <a href="(.*?)">下一章</a>', repsonse_html, re.S)
+    print(result[0])
+
+
+def front_chapter_url(repsonse_html):  # 获取上一章的url
+    result = re.findall('<a href="(.*?)">上一章</a>', repsonse_html)
+    print(result[0])
+
+
 url = "https://www.52bqg.com/book_361/246328.html"
 payload = {}
 headers = {
@@ -29,3 +39,5 @@ response = requests.request("GET", url, headers=headers, data=payload)
 
 response_html = response.content.decode('gbk')  # 将网页的gbk编码转换为unicode
 chapter_string(response_html)
+next_chapter_url(response_html)
+front_chapter_url(response_html)
