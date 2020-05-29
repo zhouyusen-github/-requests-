@@ -1,73 +1,51 @@
 import requests
-import re
 import time
+from lxml import etree
 
 
-def chapter_string(response_html):  # 从html中解析出小说文字
-    result = re.findall('&nbsp;&nbsp;&nbsp;&nbsp;(.*?)<br />', response_html, re.S)  # 识别
-    chapter_string = "\n".join(result)  # 拼接
+def chapter_url_list(catalogue_html_tree):
+    url_list = catalogue_html_tree.xpath("//*[@id='list']/dl/dd/a/@href")
+    return url_list
+
+
+def chapter_title_list(catalogue_html_tree):
+    title_list = catalogue_html_tree.xpath("//*[@id='list']/dl/dd/a/text()")
+    return title_list
+
+
+def chapter_string(chapter_html_tree):  # 从html中解析出小说文字
+    result = chapter_html_tree.xpath("// *[ @ id = 'content'] / text()")
+    chapter_string = "\n".join(result).replace("\n\r", "").replace("\n\n", "\n")  # 拼接，然后消去无用回车
     return chapter_string
 
 
-def next_chapter_url(response_html):  # 获取下一章的url
-    result = re.findall('章节目录</a> <a href="(.*?)">下一章</a>', response_html, re.S)
-    return result[0]
-
-
-def front_chapter_url(response_html):  # 获取上一章的url
-    result = re.findall('<a href="(.*?)">上一章</a>', response_html)
-    return result[0]
-
-
-def get_title(response_html):  # 获取上一章的url
-    result = re.findall('<h1>(.*?)</h1>', response_html)
-    return result[0]
-
-
-def request_url(url):
+def request_url_html_tree(url):  # 输入url返回可用于xpath解析的对象
     payload = {}
-    headers = {
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
-        'Sec-Fetch-Site': 'same-origin',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-User': '?1',
-        'Sec-Fetch-Dest': 'document',
-        'Referer': 'https://www.52bqg.com/book_361/',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Cookie': 'fikker-I94e-tqbN=0AXYHsJQ23naNcZJNNFOpgR7HYtUOglo; fikker-I94e-tqbN=0AXYHsJQ23naNcZJNNFOpgR7HYtUOglo; Hm_lvt_cec763d47d2d30d431932e526b7f1218=1590658692; jieqiVisitTime=jieqiArticlesearchTime%3D1590658737; __gads=ID=d6e4ed37fec03f56:T=1590658760:S=ALNI_MaCwuEsGvO6rCoSPvXD4WoutOLnDA; jieqiVisitId=article_articleviews%3D361; Hm_lpvt_cec763d47d2d30d431932e526b7f1218=1590658755',
-        'If-None-Match': '1590658766|'
-    }
+    headers = {}
     response = requests.request("GET", url, headers=headers, data=payload)
     response_html = response.content.decode('GB18030', 'ignore')  # 将网页的gbk编码转换为unicode
-    return response_html
+    return etree.HTML(response_html)
 
 
-def write_chapter(novel, response_html):  # 负责将html代码中读取的一个章节写入文件
-    title = get_title(response_html)
+def write_chapter(novel, title, chapter_html_tree):  # 负责将html代码中读取的一个章节写入文件
     print(title)
-    novel.write(title + "\n")
-    novel.write(chapter_string(response_html))
+    novel.write(title)
+    novel.write(chapter_string(chapter_html_tree))
     novel.write("\n\n\n")
 
 
 # 逻辑部分
-start_url = input("请输入小说第一章节的网址（输入后光标移到冒号前）：")
+catalogue_url = input("请输入小说目录页的网址(python输入后光标移到冒号前):")  # https://www.52bqg.com/book_361/
 print("开始爬取")
 time_begin = time.time()
 novel = open('爬取小说.txt', 'w', encoding='utf-8')  # 创建txt文件保存小说
-response_html = request_url(start_url)
-write_chapter(novel, response_html)
-next_url = next_chapter_url(response_html)
-catalogue_url = front_chapter_url(response_html)  # 第一章的上一章按钮返回的目录页url
-
-while next_url != catalogue_url:  # 最后一章的下一章按钮返回的是目录页url，所以某一章返回的若不是目录页url，则不是最后一章，则继续重复翻页读取章节操作
-    response_html = request_url(next_url)
-    write_chapter(novel, response_html)
-    next_url = next_chapter_url(response_html)
-
+catalogue_url_html_tree = request_url_html_tree(catalogue_url)
+url_list = chapter_url_list(catalogue_url_html_tree)
+title_list = chapter_title_list(catalogue_url_html_tree)
+for url, title in zip(url_list, title_list):
+    complete_chapter_url = "{catalogue_url}/{url}".format(catalogue_url=catalogue_url, url=url)
+    chapter_html_tree = request_url_html_tree(complete_chapter_url)
+    write_chapter(novel, title, chapter_html_tree)
 novel.close()
 time_end = time.time()
 time = round(time_end - time_begin)
