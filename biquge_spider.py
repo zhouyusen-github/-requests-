@@ -41,12 +41,14 @@ def request_url(url):
         'If-None-Match': '1590658766|'
     }
     response = requests.request("GET", url, headers=headers, data=payload)
-    response_html = response.content.decode('gbk')  # 将网页的gbk编码转换为unicode
+    response_html = response.content.decode('GB18030', 'ignore')  # 将网页的gbk编码转换为unicode
     return response_html
 
 
 def write_chapter(novel, response_html):  # 负责将html代码中读取的一个章节写入文件
-    novel.write(get_title(response_html) + "\n")
+    title = get_title(response_html)
+    print(title)
+    novel.write(title + "\n")
     novel.write(chapter_string(response_html))
     novel.write("\n\n\n")
 
@@ -68,5 +70,5 @@ while next_url != catalogue_url:  # 最后一章的下一章按钮返回的是�
 
 novel.close()
 time_end = time.time()
-time = time_end - time_begin
-print("正常结束,耗时:", time)
+time = round(time_end - time_begin)
+print("正常结束,耗时:", time, "s")
