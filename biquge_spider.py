@@ -54,7 +54,7 @@ def write_chapter(novel, response_html):  # 负责将html代码中读取的一�
 
 
 # 逻辑部分
-start_url = input("请输入小说第一章节的网址：")
+start_url = input("请输入小说第一章节的网址（输入后光标移到冒号前）：")
 print("开始爬取")
 time_begin = time.time()
 novel = open('爬取小说.txt', 'w', encoding='utf-8')  # 创建txt文件保存小说
